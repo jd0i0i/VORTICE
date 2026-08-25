@@ -1,0 +1,862 @@
+# =====================================================================
+# VÓRTICE 150 — master.yaml  ·  VERSIÓN 3
+# FUENTE ÚNICA DE VERDAD NUMÉRICA
+# =====================================================================
+# Separador de metales no ferrosos por corrientes de Foucault.
+# XIII GeoExpoFísica-Uninorte 2026.
+#
+# QUÉ CAMBIA RESPECTO DE LA v2 — ver CONTEXTO/CAMBIOS_v3.md
+#
+#   La v2 lanzaba el material desde una PLANCHA FIJA horizontal montada
+#   sobre el rotor. Una auditoría encontró que esa arquitectura no puede
+#   funcionar: entre la banda y la plancha quedaba un hueco abierto de
+#   46,6 mm, y sobre la plancha el inerte se frenaba en 12,5–25 mm de
+#   los 80 disponibles. La v3 adopta la configuración industrial:
+#   EL ROTOR MAGNÉTICO ES EL TAMBOR DE CABEZA. Gira dentro de una
+#   carcasa no conductora que rueda libre sobre su mismo eje, y la banda
+#   envuelve esa carcasa. El material va apoyado en la banda hasta el
+#   instante del lanzamiento. Desaparecen la transferencia, el hueco,
+#   la plancha y la fricción.  Ver CONTEXTO/DECISION_ARQUITECTURA.md.
+#
+#   Instrumentación: DOS FRACCIONES, DOS CELDAS. Una celda por bandeja,
+#   un HX711 por celda, dos canales de datos al ESP32.
+#
+# TODAS LAS COTAS EN MILÍMETROS salvo indicación explícita.
+#
+# ---------------------------------------------------------------------
+# MARCAS
+# ---------------------------------------------------------------------
+#   [AUTONOMA]  decisión tomada por el equipo, justificada en
+#               CONTEXTO/DECISIONES_CONFIRMADAS.md
+#   [VERIFICAR] número sin fuente citable todavía. NO puede presentarse
+#               como resultado. Regla 2 del proyecto.
+#
+# ---------------------------------------------------------------------
+# SISTEMA DE COORDENADAS
+# ---------------------------------------------------------------------
+#   X  → sentido de avance del material. X = 0 en el EJE DEL RODILLO
+#        DE COLA (que en la v3 es además el rodillo MOTRIZ y el tensor).
+#        Crece hacia el tambor y las bandejas.
+#   Y  → transversal. Y = 0 en el plano medio de la máquina.
+#   Z  → vertical. DOS ORÍGENES CONVIVEN Y NO DEBEN CONFUNDIRSE:
+#
+#        z_cotas : desde la CARA SUPERIOR DE LA BASE.
+#        z_cad   : desde el SUELO (base inferior de las patas).
+#        z_cad = z_cotas + pata_H + base_esp = z_cotas + 48
+#
+#   En la v3 NO HAY DESPLAZAMIENTO OCULTO. El generador no mueve nada:
+#   las posiciones de `montaje` son las que construye, y verificar.py
+#   falla si difieren en más de 1 µm.
+# =====================================================================
+
+meta:
+  proyecto: "VÓRTICE 150"
+  descripcion: "Separador de metales no ferrosos por corrientes de Foucault"
+  feria: "XIII GeoExpoFísica-Uninorte 2026"
+  unidades: "mm, kg, s, N, W, V, A, rpm, Hz, T"
+  fuente_original: "cotas.json (v1) · master.yaml v2"
+  version_parametros: 3
+  arquitectura: "Rotor magnético como tambor de cabeza (opción A)"
+
+# ---------------------------------------------------------------------
+# Identidades que validan la transcripción. verificar.py las recalcula.
+# ---------------------------------------------------------------------
+verificacion_origen:
+  D_r_es_OD_mas_dos_espesores: true      # 101.6 + 2*5.0 = 111.6
+  lambda_es_pi_D_sobre_p: true           # pi*111.6/5 = 70.12034802812418
+  tolva_boca_es_banda_mas_luz: true      # 400 + 60 = 460
+  altura_total_cierra: true              # 18+460+30+170 = 678
+  entrehierro_es_suma_de_espesores: true # 0.5+1.0+1.0+1.5 = 4.0
+  banda_envuelve_la_carcasa: true        # R_material = OD_carcasa/2 + banda_esp
+
+
+# =====================================================================
+# 1 · ROTOR MAGNÉTICO
+# =====================================================================
+# El núcleo magnético NO CAMBIA respecto de la v2. Cambia solo lo que
+# lo rodea. Todos los números de esta sección venían validados.
+# =====================================================================
+rotor:
+
+  tubo:
+    designacion: 'Acero cedula 40 de 3-1/2"'
+    OD: 101.6
+    pared: 5.74
+    ID: 90.11999999999999
+    largo: 200.0
+    pared_min_N52: 4.3939393939393945   # mínimo por saturación del yugo
+    densidad: 7850.0                     # [AUTONOMA] kg/m3, acero al carbono
+
+  iman:
+    L: 60.0                # axial
+    W: 10.0                # circunferencial (por pieza)
+    T: 5.0                 # radial — EJE DE MAGNETIZACIÓN
+    grado: "N52"
+    Br_min: 1.43
+    Br_max: 1.48
+    Br_medio: 1.45
+    B_sat_acero: 1.65      # [AUTONOMA] T, saturación del acero al carbono
+    masa_unitaria: 0.0225  # kg
+    n_polos: 10
+    k_piezas: 2
+    n_filas: 3
+    n_total: 60
+
+  geometria:
+    largo_activo: 180.0
+    D_r: 111.6
+    paso_circ: 31.918581360472295
+    ancho_polo: 20.0
+    hueco_polos: 11.918581360472295
+    p_pares: 5.0
+    lambda: 70.12034802812418
+    lam_2pi: 11.16                       # decaimiento del CAMPO,  λ/2π
+    lam_4pi: 5.58                        # decaimiento de la FUERZA, λ/4π
+    alpha: 0.6265942641413202
+    # La sagita de UNA PIEZA de 10 mm sobre el tubo. Las dos piezas de
+    # un polo se montan COPLANARES, así que el polo real de 20 mm deja
+    # casi 1 mm de luz en los bordes: es lo que hay que rellenar de
+    # epóxico y lo que engorda el entrehierro efectivo en el borde.
+    sagita_pieza: 0.24666183128951502
+    sagita_polo: 0.9939762679251771
+
+  retencion:
+    tira_ancho: 11.3
+    tira_alto: 5.0
+    tira_largo: 200.0
+    tira_material: "PETG impreso"        # [AUTONOMA]
+    tira_densidad: 1270.0                # [AUTONOMA] kg/m3, PETG
+    z_zuncho: 0.5
+    zuncho_capas: 2
+    zuncho_densidad: 1792.0              # [AUTONOMA] kg/m3, fibra+epóxico
+
+  eje:
+    D: 20.0
+    largo: 480.0
+    material: "Acero rectificado h6"
+    densidad: 7850.0                     # [AUTONOMA] kg/m3
+  cubo:
+    OD: 90.07
+    largo: 30.0
+    taladros: 6
+    taladro_D: 20.0
+    taladro_PCD: 60.0
+    material: "Aluminio"                 # [AUTONOMA]
+    densidad: 2700.0                     # [AUTONOMA] kg/m3
+
+  soporte:
+    chumacera: "UCP204 (eje O20)"
+    span_chumaceras: 340.0
+    ucp204_H: 33.3
+    ucp204_L: 95.0
+    ucp204_A: 38.0
+    ucp204_J: 70.0
+    ucp204_cuerpo_D: 48.0
+    ucp204_cuerpo_L: 31.0
+    # Y = base_W/2 - (tambor.y_ext + 5): la subplaca llega justo hasta
+    # 5 mm de la carcasa. La v2 la hacía de 150 y llegaba a y=100, que
+    # era tangente al tubo; con la carcasa de la v3 (y = ±114) eso sería
+    # interferencia.
+    subplaca: [240.0, 131.0, 10.0]       # X, Y, Z — aluminio, una por lado
+    subplaca_holgura_carcasa: 5.0
+
+
+# =====================================================================
+# 2 · TAMBOR DE CABEZA  (pieza nueva de la v3)
+# =====================================================================
+# Carcasa NO CONDUCTORA que rueda libre sobre el eje del rotor mediante
+# dos rodamientos propios. La banda la envuelve. El rotor magnético gira
+# dentro, a 1400 rpm; la carcasa gira con la banda, a 57 rpm.
+#
+# LA CARCASA DEBE SER NO CONDUCTORA. Si fuera metálica sería una espira
+# en cortocircuito girando en el campo: se calentaría y frenaría el
+# rotor. Laminado de fibra de vidrio y epóxico — el mismo material y la
+# misma técnica del zuncho, que el equipo ya tiene que dominar.
+# =====================================================================
+tambor:
+  holgura_radial: 1.0                    # [AUTONOMA] rotor+zuncho → ID
+  pared: 1.0                             # [AUTONOMA] laminado GFRP
+  ID: 114.6                              # D_r + 2*z_zuncho + 2*holgura
+  OD: 116.6                              # ID + 2*pared
+  largo: 228.0                           # [AUTONOMA] cubre banda + discos
+  material: "Laminado de fibra de vidrio y epóxico"
+  densidad: 1792.0                       # igual que el zuncho
+  disco_esp: 12.0                        # [AUTONOMA] discos de extremo PETG
+  disco_material: "PETG impreso"
+  disco_densidad: 1270.0
+  rodamiento: "6004-2RS (20 x 42 x 12)"
+  rodamiento_OD: 42.0
+  rodamiento_ancho: 12.0
+  rodamiento_masa: 0.069                 # [AUTONOMA] kg, catálogo
+  y_disco_int: 102.0                     # cara interior del disco
+  y_ext: 114.0                           # semilargo de la carcasa
+  rpm_nominal: 57.3285386780412          # v_banda / (pi*OD)
+
+  # --- Manguitos deslizantes: ASÍ SE INDEXA EL ENTREHIERRO ------------
+  # En la v2 el entrehierro se indexaba bajando el rotor con galgas.
+  # Aquí el rotor es concéntrico con su carcasa: bajarlo no cambia nada.
+  # El entrehierro lo fija el DIÁMETRO EXTERIOR del tambor, así que se
+  # indexa con manguitos que se calzan sobre la carcasa. Las galgas
+  # siguen existiendo, pero ahora bajan el eje para que la línea de
+  # banda se mantenga en z = 400 con cualquier manguito.
+  manguitos:
+    pared: [0.0, 1.5, 3.0, 4.5]          # [AUTONOMA]
+    OD:    [116.6, 119.6, 122.6, 125.6]
+    material: "PETG impreso, deslizante (no partido)"
+    densidad: 1270.0
+    masa: [0.0, 0.16114973560821821, 0.32639302927591735, 0.49572988100309723]
+    cambio: "Se retira un disco de extremo y el manguito sale axialmente"
+
+
+# =====================================================================
+# 3 · OPERACIÓN
+# =====================================================================
+operacion:
+
+  N_nominal: 1400
+  N_min: 1000
+  N_max: 2000                            # techo programado en firmware
+  f_nominal: 116.66666666666667          # Hz — f = p*N/60
+  v_sup: 8.18070726994782                # m/s en la cara del imán
+
+  # --- Entrehierro ---------------------------------------------------
+  # Distancia CARA DEL IMÁN → MATERIAL. En la v3 son cuatro espesores
+  # en serie, todos fijos por construcción:
+  entrehierro:
+    z_zuncho: 0.5
+    z_holgura: 1.0                       # rotor → ID de carcasa
+    z_carcasa: 1.0
+    z_banda: 1.5
+    z_nominal: 4.0
+    z_index: [4.0, 5.5, 7.0, 8.5]        # uno por manguito
+    galgas: [0.0, 1.5, 3.0, 4.5]         # bajan el eje para nivelar la banda
+    galga_max: 4.5
+    # Convención [AUTONOMA], heredada de la v2 (A-17): bajo la subplaca
+    # va una pila de (galga_max - galga). galga=0 → pila completa 4,5
+    # → eje arriba → manguito 0,0 → entrehierro 4,0.
+    F_relativa: [1.0, 0.7642829505161153, 0.5841284284496188, 0.4464393987758162]
+    # F/F0 = e^(-(z - z_nominal)/lam_4pi). Éste es el experimento de H1.
+    penalizacion_vs_v2: 0.8358908986120875   # e^(-1.0/5.58): coste de la arquitectura
+
+  # --- Velocidad de banda --------------------------------------------
+  v_banda: 0.35
+  v_banda_min: 0.15
+  v_banda_max: 0.45
+  rampa_s: 15.0
+
+  # --- Despegue en el tambor -----------------------------------------
+  # Una pieza SIN empuje magnético no se separa en la cima: sigue la
+  # banda hasta que la componente radial del peso ya no alcanza para
+  # la fuerza centrípeta.  cos(theta) = v^2 / (g*R)
+  despegue:
+    R_material: 59.8                     # OD/2 + banda_esp
+    v_min_cima: 0.7659229726284491        # sqrt(g*R): despegue tangencial
+    theta_inerte_deg: 77.94696429070191
+    nota: "v_banda = 0,35 m/s es el 46 % de v_min: el inerte NO despega en la cima"
+
+
+# =====================================================================
+# 4 · CAUDAL Y LOTE PATRÓN
+# =====================================================================
+caudal:
+  phi_cobertura: 0.25
+  sigma_areal: 0.3425                    # kg/m2
+  caudal_g_s: 17.981250000000003
+  caudal_kg_h: 64.73250000000002
+  piezas_por_s: 20.457287171439784
+  masa_sobre_banda: 25.687500000000007   # g
+  lote_g: 254.9
+  lote_piezas: 290
+  lote_frac_Al: 32.8                     # %
+  t_lote: 14.175877650330204             # s
+
+# Lote patrón para el ensayo de separación (H principal).
+lote_patron:
+  - {material: "Al de lata (pared)",     piezas: 120, dim: [25.0, 25.0, 0.10], masa_u_g: 0.170, masa_tot_g: 20.4}
+  - {material: "Al de perfil/bandeja",   piezas: 25,  dim: [25.0, 25.0, 1.50], masa_u_g: 2.531, masa_tot_g: 63.3}
+  - {material: "PET de botella",         piezas: 90,  dim: [25.0, 25.0, 0.35], masa_u_g: 0.302, masa_tot_g: 27.2}
+  - {material: "HDPE (tapas)",           piezas: 30,  dim: [28.0, 28.0, 1.20], masa_u_g: 0.894, masa_tot_g: 26.8}
+  - {material: "Vidrio 3 mm",            piezas: 25,  dim: [25.0, 25.0, 3.00], masa_u_g: 4.688, masa_tot_g: 117.2}
+
+# Probetas para H2. TODAS de la misma geometría y el mismo espesor:
+# es la única forma de que la comparación entre metales signifique algo.
+lote_H2:
+  condicion: "a geometría y espesor controlados: 25 x 25 x 0,5 mm"
+  probetas:
+    - {material: "Aluminio 1050",  piezas: 10, dim: [25.0, 25.0, 0.50], masa_u_g: 0.844}
+    - {material: "Cobre ETP",      piezas: 10, dim: [25.0, 25.0, 0.50], masa_u_g: 2.800}
+    - {material: "Latón CuZn37",   piezas: 10, dim: [25.0, 25.0, 0.50], masa_u_g: 2.647}
+  medida: "alcance individual con regla; 10 repeticiones por material"
+
+
+# =====================================================================
+# 5 · CINTA TRANSPORTADORA
+# =====================================================================
+# En la v3 el rodillo de COLA es el motriz Y el tensor; el tambor de
+# cabeza es el rotor y rueda libre. Así el accionamiento no tiene que
+# atravesar la carcasa.
+# =====================================================================
+cinta:
+  banda_ancho: 150.0
+  banda_esp: 1.5
+  banda_L: 1279.0044113119786            # 2C + pi(D_tambor+D_cola)/2 + (dif)^2/4C
+  banda_material: "PVC liso, sin tacos"
+  banda_densidad: 1400.0                 # [AUTONOMA] kg/m3
+  banda_masa: 0.40288638956327333        # kg
+  banda_sup_altura: 400.0                # z_cotas de la superficie de banda
+  rodillo_D: 60.0                        # rodillo de cola = motriz + tensor
+  rodillo_L: 170.0
+  entrecentros: 500.0
+  rodillo_rpm: 111.40846016432674        # a v_banda
+  rodillo_rpm_max: 143.2394487827058     # a v_banda_max — así hay que pedirlo
+  motriz: "rodillo de cola"
+  tensor_recorrido: 40.0                 # [AUTONOMA] ±20 sobre el nominal
+  tensor_necesario: 14.687066941154171   # cambio de banda entre manguitos
+  cama_esp: 3.0
+  cama_ancho: 150.0
+  cama_largo: 400.0
+  cama_x: [50.0, 450.0]
+  guia_alto: 25.0
+  guia_esp: 3.0
+  guia_largo: 400.0
+
+  # --- Tensión de banda, DERIVADA (la v2 no la tenía) ----------------
+  # T2 sale de limitar la flecha del ramal de retorno; T1 = T2 + la
+  # fuerza tangencial que hay que vencer. La carga radial sobre el
+  # tambor es T1 + T2, y es lo que carga el eje del rotor.
+  tension:
+    flecha_admisible: 5.0                # [AUTONOMA] mm en el vano de 500
+    peso_por_metro: 3.0901500000000004   # N/m
+    mu_banda_cama: 0.30                  # [AUTONOMA] PVC sobre acrílico
+    F_tangencial: 0.44645310000000005    # N
+    T2: 19.313437500000003               # N
+    T1: 19.759890600000002               # N
+    carga_radial_tambor: 39.073328100000005  # N
+
+
+# =====================================================================
+# 6 · TOLVA
+# =====================================================================
+tolva:
+  # CORRECCIÓN v3: la salida era de 150 mm sobre una banda de 150 — el
+  # material caía justo sobre los cantos y sobre las guías laterales.
+  # Se baja a 130 y quedan 10 mm de margen por lado.
+  sup: [260.0, 200.0]                    # boca superior Y, X
+  salida: [130.0, 40.0]                  # Y, X
+  margen_a_banda: 10.0                   # por lado
+  angulo_Y: 69.07549825507884
+  h_cono: 170.0
+  h_cuello: 30.0
+  angulo: 64.79887635452492              # pared en el eje X (la v2 decía 65,0)
+  volumen_L: 4.329151150529616
+  luz: 60.0                              # sobre la banda
+  z_boca: 460.0                          # z_cotas de la salida
+  espesor: 3.0                           # [AUTONOMA] acrílico 3 mm
+  compuerta_rango: [0.0, 25.0]
+  vibrador: "12 V DC, 0,4 A"             # obligatorio: se arquea sin él
+
+  soportes:                              # [AUTONOMA] — todo este bloque
+    tipo: "Dos pórticos verticales de MDF a los costados de la banda"
+    n: 2
+    espesor: 18.0
+    ancho_X: 120.0
+    y_centro: 132.0                      # ±, fuera de banda_ancho/2 = 75
+    brida_esp: 18.0
+    brida_X: 200.0
+    brida_Y: 300.0
+
+
+# =====================================================================
+# 7 · TRANSMISIÓN Y MOTOR
+# =====================================================================
+transmision:
+  motor_tipo: "DC escobillas 24 V / 350 W (tipo MY1020)"
+  motor_V: 24
+  motor_W: 350
+  motor_rpm: 2750
+  motor_D: 90.0
+  motor_L: 150.0
+  driver: "BTS7960"
+  polea_motriz_T: 25
+  polea_cond_T: 32
+  polea_paso: 5.0                        # HTD-5M
+  polea_ancho: 15.0
+  Dp_motriz: 39.78873577297384
+  Dp_cond: 50.92958178940651
+  relacion: 1.28
+  entrecentros_poleas: 180.0
+  correa_L: 502.6723867360582
+  correa_comercial: "HTD-5M 525 mm, ancho 15"
+  rotor_rpm_fondo: 2148.4375
+  par_rampa: 0.1600734571812687          # N*m
+  pot_rampa: 33.5257064743596            # W
+  # [AUTONOMA] 220° (la v2 usaba 215°): a 215° el ramal de retorno de
+  # la banda pasaba a 15 mm de la cima del motor. A 220° quedan 26,5.
+  motor_angulo_deg: 220.0
+  polea_holgura_carcasa: 5.0             # [AUTONOMA] disco de tambor → polea
+  # La polea va sobre el EJE DE SALIDA del motor, separada de la carcasa.
+  # Calzarla contra la cara del motor dejaba la correa rozando la
+  # carcasa; sin eje modelado, la polea no colgaba de nada.
+  motor_holgura_polea: 3.0
+  eje_motor_D: 12.0
+
+
+# =====================================================================
+# 8 · SALIDA — CUCHILLA, BANDEJAS, DEFLECTOR
+# =====================================================================
+# LA PLANCHA FIJA YA NO EXISTE. Ver DECISION_ARQUITECTURA.md.
+# =====================================================================
+salida:
+
+  # --- Modelo de lanzamiento -----------------------------------------
+  # Dos regímenes, y la diferencia entre ellos es física, no un ajuste:
+  #   · Pieza SIN empuje (inerte): no alcanza sqrt(gR) en la cima, sigue
+  #     la banda hasta theta = acos(v^2/gR) y sale tangencialmente.
+  #   · Pieza CON empuje (conductora): supera sqrt(gR) y se separa en la
+  #     cima, horizontalmente.
+  lanzamiento:
+    modelo: "despegue tangencial sobre el tambor de cabeza"
+    x_cima: 500.0
+    z_cima: 448.0                        # z_cad
+    x_despegue_inerte: 558.4816927776235
+    z_despegue_inerte: 400.68725790010194
+    vx_inerte: 0.07308595760929229
+    vz_inerte: -0.3422841550529804
+
+    # VELOCIDADES DE SALIDA — [VERIFICAR], TODAS.
+    # Son las que implicaba la tabla de alcances de la v1/v2, ahora
+    # explícitas en vez de escondidas dentro de un alcance. Salen de un
+    # modelo balístico con factores de derrateo ESTIMADOS (P-06), no
+    # medidos, y el empuje de la v3 actúa sobre el arco de envolvimiento
+    # y no sobre una placa plana: no hay derivación citable para
+    # ninguna. NO PUEDEN PRESENTARSE COMO RESULTADO.
+    v_salida:                            # m/s   [VERIFICAR] las cuatro
+      inerte: 0.35
+      f35: 1.3689
+      f25: 1.8415
+      lata: 3.9457
+    v_salida_fuente: "[VERIFICAR] — modelo balístico v1, derrateo estimado. Cierra P-06."
+
+  # --- Alcances DERIVADOS de las velocidades y de la geometría --------
+  # No son cotas: los recalcula el generador. Si cambia z_bandeja_piso
+  # o v_salida, cambian solos.
+  alcances:
+    x_inerte: 574.0263203929568
+    x_f35: 861.4641834630445
+    x_f25: 986.2563327103487
+    x_lata: 1541.8797784280332           # ALCANCE LIBRE: lo para el deflector
+    sep_f35: 287.4378630700877
+    sep_f25: 412.2300123173919
+    sep_lata: 967.8534580350764
+    h_caida: 342.0                       # cima → piso de bandeja, DERIVADO
+
+  # --- Cuchilla divisora ---------------------------------------------
+  # Es un CANTO DE CUCHILLA, no un muro: 30 mm sobre el canto de las
+  # bandejas. La v2 le ponía 200 mm y con eso interceptaba el 100 % de
+  # la fracción conductora.
+  # Cuelga del bastidor. NO TOCA NINGUNA BANDEJA.
+  cuchilla_x: 718.0                      # absoluto, equidistante
+  cuchilla_esp: 3.0
+  cuchilla_H: 40.0                       # altura del filo sobre el tejadillo
+  cuchilla_Y: 135.0                      # ± — deja 5 mm a la pared interior
+  cuchilla_tejadillo: 25.0               # cubre la ranura entre bandejas
+  cuchilla_holgura_min: 20.0             # [AUTONOMA] a la trayectoria más baja
+  cuchilla_rango: [643.0, 743.0]         # cuchilla Y BANDEJAS sobre carril común
+  cuchilla_paso: 25.0
+  cuchilla_material: "Aluminio 3 mm, borde superior redondeado"
+  margen_cuchilla: 143.4641834630445     # min(inerte, f35)
+
+  # --- Bandejas ------------------------------------------------------
+  gap_bandejas: 13.0                     # ranura entre bandejas para la cuchilla
+  bandeja_inerte: [280.0, 214.0, 120.0]  # Y, X, Z (interior)
+  bandeja_nofe: [280.0, 428.0, 120.0]    # Y, X, Z (interior)
+  bandeja_esp: 3.0
+  bandeja_material: "Polipropileno corrugado 3 mm sobre marco de aluminio 15x15"
+  bandeja_densidad: 250.0                # [AUTONOMA] kg/m3 efectiva del corrugado
+  marco_seccion: 43.0                    # mm2, ángulo 15x15x1,5
+  marco_densidad: 2700.0
+  holgura_bandeja: 5.0                   # NADA salvo su celda a menos de esto
+
+  # --- Deflector acolchado -------------------------------------------
+  # Retén de la media lata. Cuelga del bastidor y entra en la bandeja
+  # de no ferrosos SIN TOCARLA.
+  deflector_x: 1090.0                    # cara de la espuma, absoluto
+  deflector_espuma: 50.0
+  deflector_esp: 3.0
+  deflector_Y: 135.0                     # ± — 5 mm a la pared interior
+  deflector_z_bot_holgura: 5.0           # sobre el piso de bandeja
+  z_impacto_lata: 338.32821517711056     # [VERIFICAR] — depende de v_salida
+
+
+# =====================================================================
+# 9 · BASTIDOR
+# =====================================================================
+bastidor:
+  # La v3 mide 1.526 mm de extremo a extremo contra los 1.606 de la v2:
+  # el lanzamiento se adelantó 95 mm y el deflector se movió aguas
+  # arriba. La base baja de 1.650 a 1.300 mm.
+  base_L: 1300.0
+  base_W: 500.0
+  base_esp: 18.0
+  base_material: "MDF"
+  lateral_L: 1300.0
+  lateral_H: 460.0
+  lateral_esp: 18.0
+  sep_laterales: 300.0
+  travesano_secc: [40.0, 40.0]
+  travesanos: 4
+  travesano_x: [-55.0, 250.0, 1030.0, 1185.0]   # [AUTONOMA] ver `cad`
+  pata_D: 40.0
+  pata_H: 30.0
+  pata_material: "Caucho"
+
+  # --- Guarda --------------------------------------------------------
+  # DERIVADA, no escrita a mano. Debe cubrir toda abscisa donde exista
+  # el rotor magnético (envolvente con el manguito más grueso) y toda
+  # la zona de vuelo hasta el deflector. Dos paños para poder abrir uno
+  # solo y llegar a las bandejas.
+  guarda_esp: 6.0
+  guarda_Y: 330.0                        # ancho transversal (NO es altura)
+  guarda_material: "Policarbonato"
+  guarda_paños: 2
+  guarda_margen_rotor: 20.0              # [AUTONOMA] aguas arriba del tambor
+
+  caja_control: [200.0, 150.0, 80.0]     # X, Z, Y
+  caja_control_x: 1000.0
+  caja_control_z: 250.0                  # z_cotas
+  altura_total: 678.0                    # sin patas
+  mdf_densidad: 750.0                    # [AUTONOMA] kg/m3
+
+  # Con la base de 1.300 mm ya no caben tres ventanas de 300 sin
+  # cruzar la escotadura del rotor (380–620) ni los 100 mm extremos.
+  # Son DOS por lado. La v2 tenía tres sobre una base de 1.650.
+  ventanas:
+    n: 2
+    ancho_X: 300.0
+    alto_Z: 240.0
+    z_centro: 250.0                      # z_cotas
+    x_centros: [190.0, 830.0]
+    margen_extremo: 100.0
+    escotadura_rotor:                    # ventana para subplaca y chumacera
+      x_ini: 380.0
+      x_fin: 620.0
+      margen_superior: 7.0               # sobre el cuerpo de la chumacera
+
+
+# =====================================================================
+# 10 · MASAS, INERCIA Y VERIFICACIONES MECÁNICAS
+# =====================================================================
+masas:
+  m_tubo: 2.7139312522049823
+  m_iman_u: 0.0225
+  m_imanes: 1.3499999999999999
+  m_eje: 1.183752111872634
+  m_cubos: 0.6759466412732379
+  m_tiras: 0.14351
+  m_zuncho: 0.05679748190278059
+  m_rotor: 6.1239374872536345            # solo lo que gira a N_nominal
+  m_carcasa: 0.14838177401982722
+  m_discos_tambor: 0.2721655938451704
+  m_rodamientos_tambor: 0.138
+  m_tambor: 0.5585473678649977           # gira a rpm de banda, no a N
+  m_banda: 0.40288638956327333
+  m_base: 8.775
+  m_laterales: 16.146
+  m_bandeja_inerte: 0.36324896
+  m_bandeja_nofe: 0.54582808
+  I_rotor: 0.011464416885693496          # kg*m2 — no incluye el tambor
+
+mecanica:
+  E_rotor_nom: 123.20697129327152        # J a N_nominal
+  E_rotor_max: 251.44279855769702        # J a N_max
+  Fc_iman_max: 52.604991457806264        # N por imán a N_max
+  tension_union: 0.08767498576301044     # MPa
+  E_iman_suelto: 1.5365197523703928      # J
+  limite_pct_critica: 70.0               # [AUTONOMA] criterio de diseño
+  limite_tension_union: 1.0              # [AUTONOMA] MPa, CRITERIO DE DISEÑO
+  resistencia_epoxico: 10.0              # [AUTONOMA] MPa, RESISTENCIA REAL
+  # Son DOS cifras distintas y hay que citarlas por separado:
+  #   contra el criterio de diseño (1 MPa)     → factor 11x
+  #   contra la resistencia del epóxico (10)   → factor 114x
+  factor_vs_criterio: 11.405850997668103
+  factor_vs_epoxico: 114.05850997668103
+
+  # --- Eje: ahora carga el rotor Y el tambor -------------------------
+  # La v2 solo consideraba el peso del rotor. En la v3 el eje soporta
+  # además la carga radial de la banda a través de los rodamientos del
+  # tambor, aplicada en y = ±106.
+  eje_span: 340.0
+  eje_a_rodamiento_tambor: 106.0
+  flecha_por_rotor: 0.025263172632947074
+  flecha_por_tambor: 0.01890681503205857
+  flecha_eje: 0.04416998766500564        # mm, total
+  N_critica: 4500.308092479512           # rpm
+  pct_critica: 44.441401764075           # % — regla: < 70 %
+
+
+# =====================================================================
+# 11 · FÍSICA DE MATERIALES  (sección nueva de la v3)
+# =====================================================================
+# Sin esto H2 no es enunciable. Toda comparación entre materiales debe
+# declarar la condición "a geometría y espesor controlados".
+# =====================================================================
+materiales:
+  condicion: "a geometría y espesor controlados"
+  f_operacion: 116.66666666666667        # Hz
+  mu0: 1.2566370614359173e-06
+  # rho_e en ohm*m a 20 C; rho_m en kg/m3. Fuente: CRC Handbook /
+  # ASM Metals Handbook, valores de aleación comercial. [VERIFICAR]
+  # las páginas exactas — P-08.
+  tabla:
+    - {material: "Aluminio 1050", rho_e: 2.82e-08, rho_m: 2700.0,
+       sigma: 3.5460992907801417e+07, sigma_sobre_rho_m: 13133.701076963489,
+       delta_mm: 7.824764777907648}
+    - {material: "Cobre ETP",     rho_e: 1.72e-08, rho_m: 8960.0,
+       sigma: 5.8139534883720934e+07, sigma_sobre_rho_m: 6488.787375415282,
+       delta_mm: 6.110981377782498}
+    - {material: "Latón CuZn37",  rho_e: 6.40e-08, rho_m: 8470.0,
+       sigma: 1.5625e+07,             sigma_sobre_rho_m: 1844.7461629279808,
+       delta_mm: 11.787907623410664}
+  # sigma(Al)/sigma(Cu) = 0,610 (61 % IACS contra 100 % IACS):
+  # el aluminio conduce un 39 % MENOS que el cobre. La v2 decía
+  # "un 70 % peor", que es falso. Ver CAMBIOS_v3.md.
+  razon_sigma_Al_Cu: 0.6099290780141844
+  al_conduce_menos_pct: 39.00709219858156
+  nota_delta: >
+    A 116,7 Hz la profundidad de piel en aluminio es de 7,8 mm: las
+    piezas del lote (0,10 a 1,50 mm) quedan completamente penetradas y
+    toda su masa conduce. El anteproyecto citaba 4,9 mm porque trabajaba
+    a 300 Hz. delta = sqrt(rho_e / (pi f mu0)).
+
+hipotesis:
+  H1:
+    enunciado: >
+      La longitud de decaimiento del CAMPO (lambda/2pi) debe ser el doble
+      de la de la FUERZA (lambda/4pi), porque F depende de B al cuadrado.
+    predice: "F(z)/F(4,0) = e^(-(z-4,0)/5,58) al barrer el entrehierro"
+    se_mide: "B(z) con bobina de prueba; F(z) por el alcance con regla"
+    instrumento: "bobina de prueba 200 esp. AWG32 sobre Ø10 + sonda Hall SS49E"
+    variable_de_control: "entrehierro indexado 4,0 / 5,5 / 7,0 / 8,5 mm"
+    # ADVERTENCIA: la razón (lambda/2pi)/(lambda/4pi) vale 2 POR ÁLGEBRA,
+    # con cualquier D_r y cualquier p. Comprobarla en un script NO es
+    # comprobar la hipótesis. Lo que se comprueba es que la CAÍDA MEDIDA
+    # de la fuerza sigue e^(-z/(lambda/4pi)) con el lambda/4pi que sale
+    # del campo medido. La v2 presentaba la identidad algebraica como
+    # validación: eso es exactamente lo que castiga el criterio 2.
+  H2:
+    enunciado: >
+      El aluminio debe acelerarse más que el cobre pese a conducir un
+      39 % menos, porque la figura de mérito es sigma/rho_m y no sigma.
+    predice: "alcance Al > Cu > latón, en la razón de sigma/rho_m"
+    se_mide: "alcance de probetas de Al, Cu y latón del lote_H2"
+    instrumento: "probetas 25x25x0,5 mm de los tres metales + regla"
+    condicion: "a geometría y espesor controlados"
+
+
+# =====================================================================
+# 12 · ELECTRÓNICA, CONTROL Y SEGURIDAD
+# =====================================================================
+electronica:
+  controlador: "ESP32"
+  drivers: 2                             # BTS7960: rotor y cinta
+  encoder: "Ranura óptica, rpm del rotor"
+
+  # --- DOS FRACCIONES, DOS CELDAS ------------------------------------
+  # La v2 llevaba 8 celdas de 5 kg (20 kg de fondo de escala por bandeja)
+  # para medir 83,7 g de aluminio: una cuantización del 6 % antes de
+  # ruido. La v3 usa UNA celda monopunto de 2 kg por bandeja, con la
+  # bandeja aligerada, y baja la cuantización al 1,2 %.
+  celdas: 2
+  celda_tipo: "Monopunto (parallelogram) 2 kg, 4 hilos"
+  celda_FS: 2.0                          # kg
+  celdas_por_bandeja: 1
+  celda_L: 80.0
+  celda_ancho: 30.0
+  celda_alto: 55.0                       # conjunto celda + escuadras
+  hx711: 2                               # uno por celda
+  canales_de_datos: 2
+  resolucion_celda: 1.0                  # g  [VERIFICAR] — ver protocolo
+  resolucion_protocolo: >
+    [VERIFICAR] La resolución NO es FS/2^24. La fija el piso de ruido
+    mecánico y eléctrico. Se mide antes de fiarse de ella: masa patrón
+    de 10 g, 20 repeticiones, con el motor detenido; se reporta la
+    desviación típica. Hasta entonces, 1 g es un OBJETIVO de diseño.
+  error_esquina_protocolo: >
+    [VERIFICAR] Una celda monopunto bajo una plataforma de 434 x 280 mm
+    está por encima del tamaño para el que se compensa el momento. Se
+    mide: 100 g en el centro y en las cuatro esquinas, se reporta la
+    dispersión. Si supera el 2 %, la corrección es DOS celdas en
+    paralelo por bandeja — cuatro en total, pero SIGUEN SIENDO DOS
+    CANALES DE DATOS.
+  topes_antivuelco: 4                    # por bandeja, holgura declarada
+  tope_holgura: 6.0                      # mm, no tocan nunca
+
+  fuente_V: 24
+  fuente_A: 15
+  # --- Conversión DC-DC: la v2 no la tenía y la máquina no arrancaba --
+  dcdc:
+    - {de: 24, a: 12, A: 2, para: "vibrador de tolva"}
+    - {de: 24, a: 5,  A: 3, para: "ESP32, HX711, encoder, sensores"}
+
+seguridad:
+  seta_emergencia: "Corte físico de alimentación, no por software"
+  guarda_obligatoria: true
+  pesar_con_motor_detenido: true
+  epp: "Gafas de seguridad y guantes de carnaza al manipular imanes"
+  N_max_firmware: 2000
+  # En la v3 el rotor magnético queda ENCERRADO por construcción dentro
+  # de la carcasa y la banda. La guarda sigue siendo obligatoria: cubre
+  # la zona de vuelo y da la segunda barrera sobre el tambor.
+  rotor_encerrado_por_carcasa: true
+
+
+# =====================================================================
+# 13 · GEOMETRÍA DE MONTAJE  (derivada — el generador la recalcula)
+# =====================================================================
+# verificar.py compara TODA esta sección contra lo que construye
+# generar_modelo3d.py y FALLA si algo difiere en más de 1 µm.
+# =====================================================================
+montaje:
+  x_rodillo_cola: 0.0
+  x_tambor: 500.0
+  x_tolva_centro: 95.0
+  recorrido_asentamiento: 405.0
+  z_offset_cad: 48.0
+  z_banda_sup_cad: 448.0
+  z_eje_tambor_cad: 388.2
+  z_eje_tambor_cotas: 340.2
+  z_eje_rodillo_cola_cad: 416.5
+  z_celda_top_cad: 103.0
+  z_bandeja_piso_cad: 106.0
+  z_bandeja_canto_cad: 226.0
+  z_lateral_top_cad: 508.0
+  x_base_ini: -85.0
+  x_base_fin: 1215.0
+  x_bandeja_inerte: [491.5, 711.5]
+  x_bandeja_nofe: [724.5, 1158.5]
+  x_cuchilla: 718.0
+  x_deflector_espuma: 1090.0
+  x_deflector_placa: 1140.0
+  x_guarda: [417.2, 1158.5]
+  x_motor: 362.11200023858396
+  z_motor: 272.4982302564229
+  y_polea: 126.5
+  x_rotor_envolvente: [437.2, 562.8]     # con el manguito más grueso
+  extension_maquina: [-31.5, 1158.5]
+
+
+# =====================================================================
+# 14 · DETALLES DE CAD  (lo que la v2 llevaba escrito a mano)
+# =====================================================================
+# PROYECTO_COMPLETO.md afirmaba que ningún script llevaba cotas a mano.
+# Era falso: había once. Están todas aquí.
+# =====================================================================
+cad:
+  pata_x_borde: 80.0
+  pata_y_borde: 60.0
+  chumacera_base_esp: 12.0
+  subplaca_alivio_x: [-60.0, 75.0]       # respecto de motor y tambor
+  subplaca_alivio_y_margen: 10.0
+  cuna_ancho: 18.0
+  cuna_y_margen: 8.0
+  cuna_altura_extra: 8.0
+  cuchilla_soporte_X: 20.0
+  cuchilla_travesano_esp: 18.0
+  celda_x_borde: 20.0
+  deflector_travesano_X: 23.0
+  deflector_travesano_esp: 18.0
+  vol_interferencia_min: 25.0            # mm3, por debajo es un roce
+  area_junta_min: 100.0                  # mm2, apoyo real
+  tol_contacto: 0.1                      # mm, umbral de "se tocan"
+  tray_muestras: 240                     # puntos por trayectoria
+
+
+# =====================================================================
+# 15 · JUNTAS DECLARADAS
+# =====================================================================
+# Toda pareja de sólidos que se toque en el modelo debe estar aquí.
+# Si dos sólidos se tocan y no están declarados, verificar.py FALLA.
+# Es lo que caza el puente de la cuchilla sobre las bandejas de la v2:
+# aquella tangencia era invisible para el chequeo de interferencia
+# (tolerancia +0,6) y contaba como apoyo para el de anclaje (−0,6).
+#
+# tipo:  atornillada | pegada | apilada | ajuste | rodamiento |
+#        engrane | apoyo | deslizante
+# =====================================================================
+juntas:
+  - [pata, base_MDF, atornillada]
+  - [base_MDF, lateral_MDF, atornillada]
+  - [base_MDF, travesano, atornillada]
+  - [lateral_MDF, travesano, atornillada]
+  - [lateral_MDF, caja_control, atornillada]
+  - [base_MDF, tolva_soporte, atornillada]
+  - [tolva_soporte, tolva_brida, atornillada]
+  - [tolva_brida, lateral_MDF, atornillada]
+  - [tolva_brida, tolva, atornillada]
+  - [tolva, compuerta, deslizante]
+  - [tolva_brida, compuerta, deslizante]
+  - [base_MDF, pedestal_rotor, atornillada]
+  - [pedestal_rotor, lateral_MDF, atornillada]
+  - [pedestal_rotor, galgas, apilada]
+  - [galgas, subplaca_rotor, apilada]
+  - [galgas, lateral_MDF, apilada]
+  - [subplaca_rotor, lateral_MDF, apilada]
+  - [subplaca_rotor, chumacera_UCP204, atornillada]
+  - [chumacera_UCP204, eje_rotor, rodamiento]
+  - [eje_rotor, cubo_fijacion, ajuste]
+  - [eje_rotor, polea_conducida, ajuste]
+  - [eje_rotor, rodamiento_tambor, rodamiento]
+  - [cubo_fijacion, rotor_tubo, ajuste]
+  - [rotor_tubo, iman_N, pegada]
+  - [rotor_tubo, iman_S, pegada]
+  - [rotor_tubo, tira_separadora, pegada]
+  - [zuncho_fibra, iman_N, pegada]
+  - [zuncho_fibra, iman_S, pegada]
+  - [zuncho_fibra, tira_separadora, pegada]
+  - [rodamiento_tambor, disco_tambor, ajuste]
+  - [disco_tambor, carcasa_tambor, pegada]
+  - [carcasa_tambor, banda_PVC, apoyo]
+  - [rodillo_cola, banda_PVC, apoyo]
+  - [banda_PVC, cama_deslizamiento, apoyo]
+  - [banda_PVC, guia_lateral, deslizante]
+  - [guia_lateral, cama_deslizamiento, atornillada]
+  - [base_MDF, cuna_motor, atornillada]
+  - [cuna_motor, motor_DC, atornillada]
+  - [motor_DC, eje_motor, ajuste]
+  - [eje_motor, polea_motriz, ajuste]
+  - [polea_motriz, correa_HTD5M, engrane]
+  - [polea_conducida, correa_HTD5M, engrane]
+  - [base_MDF, celda_carga, atornillada]
+  - [celda_carga, bandeja_inertes, atornillada]
+  - [celda_carga, bandeja_no_ferrosos, atornillada]
+  - [base_MDF, tope_antivuelco, atornillada]
+  - [lateral_MDF, cuchilla_travesano, atornillada]
+  - [cuchilla_travesano, cuchilla_montante, atornillada]
+  - [cuchilla_montante, cuchilla_divisora, atornillada]
+  - [cuchilla_divisora, cuchilla_tejadillo, atornillada]
+  - [lateral_MDF, deflector_travesano, atornillada]
+  - [deflector_travesano, deflector_placa, atornillada]
+  - [deflector_placa, deflector_espuma, pegada]
+  - [deflector_placa, guarda_policarbonato, apoyo]
+  - [lateral_MDF, guarda_policarbonato, apoyo]
+  - [deflector_travesano, guarda_policarbonato, apoyo]
+  - [cuchilla_travesano, guarda_policarbonato, apoyo]
+
+
+# =====================================================================
+# 16 · PALETA DE MATERIALES PARA EL RENDER
+# =====================================================================
+colores:
+  acero:      "#4B5563"
+  iman_N:     "#C0392B"
+  iman_S:     "#2563EB"
+  mdf:        "#D2B48C"
+  acrilico:   "#A5F3FC"
+  banda:      "#1F2937"
+  carcasa:    "#E5E7EB"    # laminado GFRP del tambor
+  motor:      "#FDE68A"
+  aluminio:   "#D1D5DB"
+  petg:       "#8B5CF6"
+  espuma:     "#FCA5A5"
+  caucho:     "#374151"
+  bandeja:    "#FDBA74"    # polipropileno corrugado
